@@ -1,12 +1,13 @@
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import bodyParser from "body-parser"; // Import body-parser
 import cors from "cors"; // Import cors
 import cookieParser from "cookie-parser";
 
 import userRouter from "./routes/user.route.js";
 import taskRouter from "./routes/task.route.js";
+import path from "path";
+
 
 dotenv.config();
 
@@ -15,15 +16,15 @@ const PORT = process.env.PORT || 3000;
 const URI = process.env.MONGODB_URI;
 
 // Connect to MongoDB
-try {
-  await mongoose.connect(URI);
-  console.log("Connected to MongoDB");
-} catch (err) {
-  console.error(err);
-}
+mongoose.connect(URI)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch(err => console.error("MongoDB connection error:", err));
 
-// Body-parser middleware
-app.use(bodyParser.json());
+const __dirname = path.resolve();
+
+
+// JSON parsing middleware
+app.use(express.json());
 
 // CORS middleware
 app.use(cors({
@@ -41,6 +42,18 @@ app.use("/api/tasks", taskRouter);
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({ message: 'Server is running' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something went wrong!' });
+});
+
+// Serve frontend
+app.use(express.static(path.join(__dirname, '/frontend/dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend', 'dist', 'index.html'));
 });
 
 app.listen(PORT, () => {
